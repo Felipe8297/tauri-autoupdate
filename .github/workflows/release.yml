@@ -10,7 +10,24 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bundles: "deb,rpm,appimage"
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: "msi,nsis"
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            bundles: "dmg"
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: "dmg"
+
+    runs-on: ${{ matrix.os }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,7 +37,9 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install system dependencies
+      # Linux dependencies
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
           sudo apt install -y \
@@ -34,10 +53,12 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
+      # Rust setup
       - name: Setup Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: ${{ matrix.target }}
           profile: minimal
           override: true
 
@@ -45,6 +66,7 @@ jobs:
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        shell: bash
 
       - name: Install global Tauri CLI
         run: bun install -g @tauri-apps/cli
@@ -53,17 +75,44 @@ jobs:
         run: bun install
 
       - name: Build Tauri app
-        run: bun tauri build
+        run: bun tauri build --target ${{ matrix.target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
 
+      - name: List generated files (Debug)
+        run: |
+          find src-tauri/target -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.exe" -o -name "*.dmg" 2>/dev/null || echo "No bundle files found"
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}-${{ matrix.target }}
+          path: |
+            src-tauri/target/*/release/bundle/**/*.deb
+            src-tauri/target/*/release/bundle/**/*.rpm  
+            src-tauri/target/*/release/bundle/**/*.AppImage
+            src-tauri/target/*/release/bundle/**/*.msi
+            src-tauri/target/*/release/bundle/**/*.exe
+            src-tauri/target/*/release/bundle/**/*.dmg
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List all files
+        run: find artifacts -type f
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            src-tauri/target/release/bundle/**/*.sig
-            src-tauri/target/release/bundle/**/*
+          files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
