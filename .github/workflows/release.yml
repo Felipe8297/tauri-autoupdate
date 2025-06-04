@@ -62,10 +62,24 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Install Bun
+      # Install Bun - Linux/macOS
+      - name: Install Bun (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        shell: bash
+
+      # Install Bun - Windows
+      - name: Install Bun (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          powershell -c "irm bun.sh/install.ps1 | iex"
+          echo "$env:USERPROFILE\.bun\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Verify Bun installation
+        run: bun --version
         shell: bash
 
       - name: Install global Tauri CLI
