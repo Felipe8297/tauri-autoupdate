@@ -28,6 +28,7 @@ jobs:
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
+          export PATH="$HOME/.bun/bin:$PATH"
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
       - name: Install Tauri CLI
@@ -37,7 +38,9 @@ jobs:
         run: npm install
 
       - name: Build Tauri App
-        run: tauri build
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          tauri build
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
