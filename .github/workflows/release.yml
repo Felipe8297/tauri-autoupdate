@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 env:
-  TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
 
 jobs:
@@ -93,7 +93,7 @@ jobs:
         run: bun tauri build --target ${{ matrix.target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
 
       - name: List generated files (Debug)
