@@ -3783,7 +3783,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-autoupdate"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "serde",
  "serde_json",
