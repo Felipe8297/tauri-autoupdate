@@ -10,7 +10,7 @@ function App() {
 
   return (
     <main className="container">
-      <h1>Hello World V7</h1>
+      <h1>Hello World V8</h1>
       <button onClick={runUpdater}>Update</button>
     </main>
   );

@@ -37,11 +37,11 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY2REI0OUQwNTFGN0FBQjUKUldTMXF2ZFIwRW5iWmxjWG1TMVhyam1CbjNXbUV1Uk9vU2tNeS9ISTJQMG1yYXpRWU0waHNSU3MK",
       "endpoints": [
-        "https://api.github.com/repos/Felipe8297/tauri-autoupdate/releases/latest"
-      ]
-    },
-    "windows": {
-      "installMode": "passive"
+        "https://github.com/Felipe8297/tauri-autoupdate/releases/download/latest/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }
