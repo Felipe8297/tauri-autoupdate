@@ -174,8 +174,10 @@ jobs:
         run: find artifacts -type f
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
-          files: artifacts/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          artifacts: "artifacts/**/*"
+          allowUpdates: true
+          replacesArtifacts: true
+          generateReleaseNotes: true
+          token: ${{ secrets.GH_TOKEN }}
