@@ -12,42 +12,55 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - uses: actions-rs/toolchain@v1
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           override: true
 
+      - name: Install curl and bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl bash
+
       - name: Install Bun
-        run: curl -fsSL https://bun.sh/install | bash
+        run: |
+          curl -fsSL https://bun.sh/install | bash
         env:
           BUN_INSTALL: $HOME/.bun
           PATH: $HOME/.bun/bin:$PATH
 
-      - name: Install Tauri CLI with Bun
+      - name: Install Tauri CLI
         run: bun install -g @tauri-apps/cli
         env:
+          BUN_INSTALL: $HOME/.bun
           PATH: $HOME/.bun/bin:$PATH
 
-      - name: Install project dependencies with Bun
+      - name: Install dependencies
         run: bun install
         env:
+          BUN_INSTALL: $HOME/.bun
           PATH: $HOME/.bun/bin:$PATH
 
-      - name: Build Tauri App
+      - name: Build with Tauri
         run: tauri build
         env:
-          PATH: $HOME/.bun/bin:$PATH
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          BUN_INSTALL: $HOME/.bun
+          PATH: $HOME/.bun/bin:$PATH
 
-      - name: Create GitHub Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
           files: |
