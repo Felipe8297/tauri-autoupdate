@@ -16,7 +16,7 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            bundles: "deb,appimage"
+            bundles: "deb,rpm,appimage"
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: "msi,nsis"
@@ -61,15 +61,23 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Install Bun
+      - name: Install Bun (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            powershell -c "irm bun.sh/install.ps1 | iex"
-            echo "$env:USERPROFILE\.bun\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          else
-            curl -fsSL https://bun.sh/install | bash
-            echo "$HOME/.bun/bin" >> $GITHUB_PATH
-          fi
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Install Bun (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          powershell -c "irm bun.sh/install.ps1 | iex"
+          echo "$env:USERPROFILE\.bun\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Verify Bun installation
+        run: bun --version
+        shell: bash
 
       - name: Install global Tauri CLI
         run: bun install -g @tauri-apps/cli
@@ -78,29 +86,80 @@ jobs:
         run: bun install
 
       - name: Build Tauri app
-        run: bun tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+        run: bun tauri build --target ${{ matrix.target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          # Habilita a geração dos arquivos de updater
-          TAURI_UPDATER_PACKAGE: true
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
 
-      - name: Verify generated files
+      - name: List generated files (Debug)
         run: |
-          echo "Generated bundles:"
           find src-tauri/target -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.exe" -o -name "*.dmg" 2>/dev/null || echo "No bundle files found"
+        shell: bash
+
+      - name: Generate latest.json (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $signature = Get-Content "src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig" -Raw
+          $exeFile = Get-ChildItem "src-tauri/target/*/release/bundle/nsis/*-setup.exe" | Select-Object -First 1
+          $exeName = $exeFile.Name
+          $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
           
-          echo "Updater files:"
-          find src-tauri/target -name "latest.json" -o -name "*.sig" 2>/dev/null || echo "No updater files found"
+          $jsonContent = @"
+          {
+            "version": "${{ github.ref_name }}",
+            "notes": "Auto-update release",
+            "pub_date": "$pubDate",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$signature",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$exeName"
+              }
+            }
+          }
+          "@
+          
+          $jsonContent | Out-File -FilePath "latest.json" -Encoding UTF8
+          Get-Content "latest.json"
+        shell: pwsh
+
+      - name: Generate latest.json (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cat <<EOF > latest.json
+          {
+            "version": "${{ github.ref_name }}",
+            "notes": "Auto-update release",
+            "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$(cat src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig 2>/dev/null || echo '')",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$(basename src-tauri/target/*/release/bundle/nsis/*-setup.exe 2>/dev/null || echo 'setup.exe')"
+              }
+            }
+          }
+          EOF
+          cat latest.json
+        shell: bash
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ matrix.os }}-${{ matrix.target }}
           path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*
-            src-tauri/target/${{ matrix.target }}/release/updater/**/*
-          if-no-files-found: error
+            src-tauri/target/*/release/bundle/deb/*.deb
+            src-tauri/target/*/release/bundle/deb/*.deb.sig
+            src-tauri/target/*/release/bundle/rpm/*.rpm
+            src-tauri/target/*/release/bundle/rpm/*.rpm.sig
+            src-tauri/target/*/release/bundle/appimage/*.AppImage
+            src-tauri/target/*/release/bundle/appimage/*.AppImage.sig
+            src-tauri/target/*/release/bundle/msi/*.msi
+            src-tauri/target/*/release/bundle/msi/*.msi.sig
+            src-tauri/target/*/release/bundle/nsis/*-setup.exe
+            src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig
+            src-tauri/target/*/release/bundle/dmg/*.dmg
+            src-tauri/target/*/release/bundle/dmg/*.dmg.sig
+            latest.json
 
   release:
     needs: build
@@ -110,15 +169,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          pattern: binaries-*
-          merge-multiple: true
+
+      - name: List all files
+        run: find artifacts -type f
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "artifacts/**/*"
-          tag: ${{ github.ref_name }}
           allowUpdates: true
           replacesArtifacts: true
           generateReleaseNotes: true
           token: ${{ secrets.GH_TOKEN }}
+
+
+
+
+
+
