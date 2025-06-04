@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import "./App.css";
 import { runUpdater } from "./utils/updater";
 
 function App() {
 
-runUpdater()
+  useEffect(() => {
+    runUpdater();
+  }, []);
 
   return (
     <main className="container">
