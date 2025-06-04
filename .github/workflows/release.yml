@@ -26,22 +26,25 @@ jobs:
           override: true
 
       - name: Install Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash
-          export PATH="$HOME/.bun/bin:$PATH"
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        run: curl -fsSL https://bun.sh/install | bash
+        env:
+          BUN_INSTALL: $HOME/.bun
+          PATH: $HOME/.bun/bin:$PATH
 
-      - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
+      - name: Install Tauri CLI with Bun
+        run: bun install -g @tauri-apps/cli
+        env:
+          PATH: $HOME/.bun/bin:$PATH
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install project dependencies with Bun
+        run: bun install
+        env:
+          PATH: $HOME/.bun/bin:$PATH
 
       - name: Build Tauri App
-        run: |
-          export PATH="$HOME/.bun/bin:$PATH"
-          tauri build
+        run: tauri build
         env:
+          PATH: $HOME/.bun/bin:$PATH
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Create GitHub Release
