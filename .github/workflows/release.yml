@@ -97,7 +97,34 @@ jobs:
           find src-tauri/target -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.exe" -o -name "*.dmg" 2>/dev/null || echo "No bundle files found"
         shell: bash
 
-      - name: Generate latest.json
+      - name: Generate latest.json (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $signature = Get-Content "src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig" -Raw
+          $exeFile = Get-ChildItem "src-tauri/target/*/release/bundle/nsis/*-setup.exe" | Select-Object -First 1
+          $exeName = $exeFile.Name
+          $pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          
+          $jsonContent = @"
+          {
+            "version": "${{ github.ref_name }}",
+            "notes": "Auto-update release",
+            "pub_date": "$pubDate",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$signature",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$exeName"
+              }
+            }
+          }
+          "@
+          
+          $jsonContent | Out-File -FilePath "latest.json" -Encoding UTF8
+          Get-Content "latest.json"
+        shell: pwsh
+
+      - name: Generate latest.json (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
           cat <<EOF > latest.json
           {
@@ -106,13 +133,14 @@ jobs:
             "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
             "platforms": {
               "windows-x86_64": {
-                "signature": "$(cat src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig)",
-                "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$(basename src-tauri/target/*/release/bundle/nsis/*-setup.exe)"
+                "signature": "$(cat src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig 2>/dev/null || echo '')",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$(basename src-tauri/target/*/release/bundle/nsis/*-setup.exe 2>/dev/null || echo 'setup.exe')"
               }
             }
           }
           EOF
           cat latest.json
+        shell: bash
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
