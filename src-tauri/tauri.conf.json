@@ -31,5 +31,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "SUA_CHAVE_PUBLICA_AQUI",
+      "endpoints": [
+        "https://api.github.com/repos/Felipe8297/tauri-autoupdate/releases/latest"
+      ]
+    },
+    "windows": {
+      "installMode": "passive"
+    }
   }
 }
