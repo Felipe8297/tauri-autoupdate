@@ -1,5 +1,5 @@
-
 name: Release
+
 on:
   push:
     tags:
@@ -28,7 +28,7 @@ jobs:
             bundles: "dmg"
 
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,7 +38,6 @@ jobs:
         with:
           node-version: 20
 
-      # Linux dependencies
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -54,7 +53,6 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
-      # Rust setup
       - name: Setup Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -63,7 +61,6 @@ jobs:
           profile: minimal
           override: true
 
-      # Install Bun - Linux/macOS
       - name: Install Bun (Linux/macOS)
         if: matrix.os != 'windows-latest'
         run: |
@@ -71,7 +68,6 @@ jobs:
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
         shell: bash
 
-      # Install Bun - Windows
       - name: Install Bun (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -101,6 +97,23 @@ jobs:
           find src-tauri/target -name "*.deb" -o -name "*.rpm" -o -name "*.AppImage" -o -name "*.msi" -o -name "*.exe" -o -name "*.dmg" 2>/dev/null || echo "No bundle files found"
         shell: bash
 
+      - name: Generate latest.json
+        run: |
+          cat <<EOF > latest.json
+          {
+            "version": "${{ github.ref_name }}",
+            "notes": "Auto-update release",
+            "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$(cat src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig)",
+                "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$(basename src-tauri/target/*/release/bundle/nsis/*-setup.exe)"
+              }
+            }
+          }
+          EOF
+          cat latest.json
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -108,7 +121,7 @@ jobs:
           path: |
             src-tauri/target/*/release/bundle/deb/*.deb
             src-tauri/target/*/release/bundle/deb/*.deb.sig
-            src-tauri/target/*/release/bundle/rpm/*.rpm  
+            src-tauri/target/*/release/bundle/rpm/*.rpm
             src-tauri/target/*/release/bundle/rpm/*.rpm.sig
             src-tauri/target/*/release/bundle/appimage/*.AppImage
             src-tauri/target/*/release/bundle/appimage/*.AppImage.sig
@@ -118,6 +131,7 @@ jobs:
             src-tauri/target/*/release/bundle/nsis/*-setup.exe.sig
             src-tauri/target/*/release/bundle/dmg/*.dmg
             src-tauri/target/*/release/bundle/dmg/*.dmg.sig
+            latest.json
 
   release:
     needs: build
