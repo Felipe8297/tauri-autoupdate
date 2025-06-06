@@ -61,10 +61,12 @@ jobs:
         run: |
           mkdir -p ~/.tauri
           echo "$TAURI_SIGNING_PRIVATE_KEY" > ~/.tauri/myapp.key
+          chmod 600 ~/.tauri/myapp.key
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
         with:
           tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: 'App v__VERSION__'
