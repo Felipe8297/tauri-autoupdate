@@ -12,7 +12,7 @@ function App() {
 
   return (
     <main className="container">
-      <h1>Hello World V11</h1>
+      <h1>Hello World V11 Teste</h1>
       <p>Funciona Auto Update</p>
       <button
         onClick={() => {
