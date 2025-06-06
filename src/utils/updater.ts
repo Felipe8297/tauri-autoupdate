@@ -6,6 +6,12 @@ export async function runUpdater() {
     console.log("Starting update check...");
     const update = await check();
     console.log("Update check result:", update);
+    console.log("Update details:", {
+      available: !!update,
+      version: update?.version,
+      date: update?.date,
+      body: update?.body,
+    });
 
     if (update) {
       console.log(
@@ -35,7 +41,12 @@ export async function runUpdater() {
       });
 
       console.log("Update installed, relaunching...");
-      await relaunch();
+      // No Windows, we need to wait a bit before relaunching
+      setTimeout(() => {
+        relaunch().catch((error) => {
+          console.error("Error relaunching:", error);
+        });
+      }, 1000);
     } else {
       console.log("No updates available");
     }
