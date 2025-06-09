@@ -55,14 +55,6 @@ jobs:
       - name: install frontend dependencies
         run: bun install
 
-      - name: setup signing key
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.tauri
-          echo "$TAURI_SIGNING_PRIVATE_KEY" > ~/.tauri/myapp.key
-          chmod 600 ~/.tauri/myapp.key
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -74,7 +66,6 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
-          includeUpdaterJson: true
 
 
 
