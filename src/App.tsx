@@ -1,20 +1,19 @@
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import "./App.css";
-import { runUpdater } from "./utils/updater";
 
 function App() {
-  useEffect(() => {
-    console.log("Checking for updates...");
-    runUpdater().catch((error) => {
-      console.error("Error checking for updates:", error);
-    });
-  }, []);
+  // useEffect(() => {
+  //   console.log("Checking for updates...");
+  //   runUpdater().catch((error) => {
+  //     console.error("Error checking for updates:", error);
+  //   });
+  // }, []);
 
   return (
     <main className="container">
-      <h1>Hello World V11 Teste</h1>
+      <h1>Hello World V12</h1>
       <p>Funciona Auto Update</p>
-      <button
+      {/* <button
         onClick={() => {
           console.log("Manual update check...");
           runUpdater().catch((error) => {
@@ -23,7 +22,7 @@ function App() {
         }}
       >
         Check for Updates
-      </button>
+      </button> */}
     </main>
   );
 }
